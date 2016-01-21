@@ -27,20 +27,50 @@
 // TODO: insert other definitions and declarations here
 static volatile bool adcdone = false;
 static volatile bool adcstart = false;
-#define TICKRATE_HZ (100)	/* 100 ticks per second */
 
+volatile uint32_t a0;
+volatile uint32_t d0;
+volatile uint32_t a3;
+volatile uint32_t d3;
+
+#define TICKRATE_HZ (10)	/* 10 ticks per second */
+volatile int kalib = 50; // Määrittää kalibrointirajan
 extern "C" {
 
 void SysTick_Handler(void)
 {
 	static uint32_t count;
-
-	/* Every 1/2 second */
+	adcstart = true;
 	count++;
-	if (count >= (TICKRATE_HZ * 2)) {
+
+
+	// Sininen
+	if (d0 > d3) {
+		Board_LED_Set(0, false);
+		Board_LED_Set(1, false);
+
+		if (count >= ((d0-d3))/100){
+			Board_LED_Toggle(2);
+			count = 0;
+		}
+	}
+	// Punainen
+	if (d0 < d3) {
+		Board_LED_Set(2, false);
+		Board_LED_Set(1, false);
+
+		if (count >= ((d3-d0)/100)){
+			Board_LED_Toggle(0);
+			count = 0;
+		}
+
+	}
+	// Vihreä
+	if (d0 <= d3+kalib && d0 >= d3-kalib) {
+		Board_LED_Set(2, false);
+		Board_LED_Set(1, true);
+		Board_LED_Set(0, false);
 		count = 0;
-		adcstart = true;
-		Board_LED_Toggle(1);
 	}
 }
 
@@ -73,7 +103,8 @@ int main(void) {
 	// functions related to the board hardware
 	Board_Init();
 	// Set the LED to the state of "On"
-	Board_LED_Set(1, true);
+	//Board_LED_Set(1, true);
+
 #endif
 #endif
 
@@ -117,10 +148,7 @@ int main(void) {
 	/* Configure systick timer */
 	SysTick_Config(Chip_Clock_GetSysTickClockRate() / TICKRATE_HZ);
 
-	uint32_t a0;
-	uint32_t d0;
-	uint32_t a3;
-	uint32_t d3;
+
 
 	while(1) {
 		while(!adcstart) __WFI();
@@ -135,6 +163,7 @@ int main(void) {
 		a3 = Chip_ADC_GetDataReg(LPC_ADC0, 3);
 		d3 = ADC_DR_RESULT(a3);
 		printf("a0 = %08X, a1 = %08X, d0 = %d, d1 = %d\n", a0, a3, d0, d3);
+
 	}
 
 	// Force the counter to be placed into memory
