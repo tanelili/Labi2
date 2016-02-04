@@ -16,15 +16,11 @@
 #include <cstdio>
 #include <iostream>
 
-
 #endif
 #endif
 
 #include <cr_section_macros.h>
 
-// TODO: insert other include files here
-
-// TODO: insert other definitions and declarations here
 static volatile bool adcdone = false;
 static volatile bool adcstart = false;
 
@@ -34,7 +30,7 @@ volatile uint32_t a3;
 volatile uint32_t d3;
 
 #define TICKRATE_HZ (10)	/* 10 ticks per second */
-volatile int kalib = 50; // Määrittää kalibrointirajan
+volatile int kalib = 50; // Määrittää kalibrointirajan +-
 extern "C" {
 
 void SysTick_Handler(void)
@@ -54,6 +50,7 @@ void SysTick_Handler(void)
 			count = 0;
 		}
 	}
+
 	// Punainen
 	if (d0 < d3) {
 		Board_LED_Set(2, false);
@@ -65,6 +62,7 @@ void SysTick_Handler(void)
 		}
 
 	}
+
 	// Vihreä
 	if (d0 <= d3+kalib && d0 >= d3-kalib) {
 		Board_LED_Set(2, false);
@@ -83,8 +81,7 @@ void ADC0A_IRQHandler(void)
 
 	/* Sequence A completion interrupt */
 	if (pending & ADC_FLAGS_SEQA_INT_MASK) {
-		adcdone = true;
-	}
+		adcdone = true; }
 
 	/* Clear any pending interrupts */
 	Chip_ADC_ClearFlags(LPC_ADC0, pending);
@@ -148,8 +145,6 @@ int main(void) {
 	/* Configure systick timer */
 	SysTick_Config(Chip_Clock_GetSysTickClockRate() / TICKRATE_HZ);
 
-
-
 	while(1) {
 		while(!adcstart) __WFI();
 		adcstart = false;
@@ -162,8 +157,8 @@ int main(void) {
 		d0 = ADC_DR_RESULT(a0);
 		a3 = Chip_ADC_GetDataReg(LPC_ADC0, 3);
 		d3 = ADC_DR_RESULT(a3);
-		printf("a0 = %08X, a1 = %08X, d0 = %d, d1 = %d\n", a0, a3, d0, d3);
-
+		// Uncommend the lower line to print values in to terminal ( semihosting must be enabled )
+		// printf("a0 = %08X, a1 = %08X, d0 = %d, d1 = %d\n", a0, a3, d0, d3);
 	}
 
 	// Force the counter to be placed into memory
